@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HIMGUARD · High-Altitude Logistics Command</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:#09090b;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@keyframes flash{0%,100%{background:#7f1d1d}50%{background:#dc2626}}
+.flash{animation:flash .9s infinite}
+@keyframes dash{to{stroke-dashoffset:-24}}
+.march{stroke-dasharray:8 6;animation:dash .8s linear infinite}
+@keyframes ping2{75%,100%{transform:scale(2.4);opacity:0}}
+.ping2{transform-box:fill-box;transform-origin:center;animation:ping2 1.6s infinite}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo}=React;
+
+const P={
+ shield:"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+ alert:"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01",
+ zap:"M13 2 3 14h9l-1 8 10-12h-9l1-8z",
+ fuel:"M3 22h12M4 9h10M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5",
+ pkg:"m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7 12 12l8.7-5M12 22V12",
+ target:"M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20M22 12h-4M6 12H2M12 6V2M12 22v-4",
+ wifi:"M12 20h.01M2 8.82a15 15 0 0 1 20 0M5 12.859a10 10 0 0 1 14 0M8.5 16.429a5 5 0 0 1 7 0",
+ wifioff:"M12 20h.01M8.5 16.429a5 5 0 0 1 7 0M5 12.859a10 10 0 0 1 5.17-2.69M2 8.82a15 15 0 0 1 4.17-2.65M2 2l20 20",
+ act:"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2",
+ mtn:"m8 3 4 8 5-5 5 15H2L8 3z",
+ check:"M20 6 9 17l-5-5",
+ route:"M6 19a3 3 0 1 0 0-6a3 3 0 0 0 0 6M18 11a3 3 0 1 0 0-6a3 3 0 0 0 0 6M12 19h4.5a3.5 3.5 0 0 0 0-7h-8a3.5 3.5 0 0 1 0-7H12",
+ clock:"M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20M12 6v6l4 2",
+ snow:"M2 12h20M12 2v20m8-4-4-2m4-8-4 2M4 6l4 2M4 18l4-2m0-12 4 2 4-2m-8 16 4-2 4 2"
+};
+const Icon=({n,s=18,c=""})=>(
+ <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={P[n]}/></svg>
+);
+const Badge=({t,k="slate"})=>{
+ const m={slate:"bg-zinc-800 text-zinc-300 border-zinc-700",green:"bg-emerald-950 text-emerald-400 border-emerald-800",amber:"bg-amber-950 text-amber-400 border-amber-800",red:"bg-red-950 text-red-400 border-red-800"};
+ return <span className={`text-[10px] tracking-wider uppercase px-2 py-0.5 rounded border ${m[k]}`}>{t}</span>;
+};
+const Card=({title,icon,right,children,cls=""})=>(
+ <section className={`bg-zinc-900/80 border border-zinc-800 rounded-xl ${cls}`}>
+  <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+   <h2 className="flex items-center gap-2 text-xs font-semibold tracking-widest text-zinc-300 uppercase"><Icon n={icon} s={16} c="text-emerald-400"/>{title}</h2>{right}
+  </header>
+  <div className="p-4">{children}</div>
+ </section>
+);
+
+const BURN={fuel:90,rations:46,ammo:10};
+const UNIT={fuel:"L",rations:"kg",ammo:"crates"};
+const ICON={fuel:"fuel",rations:"pkg",ammo:"target"};
+const INIT=[
+ {id:"A",name:"Post Alpha",elev:4820,load:1,stock:{fuel:2150,rations:3400,ammo:1800}},
+ {id:"B",name:"Post Bravo",elev:5400,load:0.8,stock:{fuel:3900,rations:1500,ammo:900}},
+ {id:"C",name:"Post Charlie",elev:3900,load:1.1,stock:{fuel:6800,rations:5200,ammo:2600}}
+];
+
+function fmt(h){ if(h>=48) return `${Math.floor(h/24)}d ${Math.round(h%24)}h`; return `${Math.floor(h)}h ${Math.round((h%1)*60)}m`; }
+
+function App(){
+ const [d1,setD1]=useState(false);
+ const [block,setBlock]=useState(false);
+ const [online,setOnline]=useState(true);
+ const [posts,setPosts]=useState(INIT);
+ const [queued,setQueued]=useState(0);
+ const [approved,setApproved]=useState({});
+ const [tele,setTele]=useState({fuel:[62,61,60,60,59],rat:[88,88,87,87,86]});
+ const [form,setForm]=useState({post:"A",res:"fuel",val:""});
+ const [log,setLog]=useState([]);
+ const [synced,setSynced]=useState("14:02:11");
+ const weather=1.3; // incoming blizzard multiplier
+
+ useEffect(()=>{
+  const t=setInterval(()=>{
+   setTele(s=>({fuel:[...s.fuel.slice(-11),Math.max(5,s.fuel.at(-1)-(Math.random()*1.2))],rat:[...s.rat.slice(-11),Math.max(5,s.rat.at(-1)-(Math.random()*0.8))]}));
+   if(online){
+     setPosts(ps=>ps.map(p=>({...p,stock:{fuel:Math.max(0,p.stock.fuel-1),rations:Math.max(0,p.stock.rations-0.5),ammo:p.stock.ammo}})));
+     setSynced(new Date().toLocaleTimeString("en-GB"));
+   }
+  },2000);
+  return()=>clearInterval(t);
+ },[online]);
+
+ const hours=(p,r)=>{
+  const terrain=1+(p.elev-3000)/6000;
+  const threat=(d1&&r==="ammo")?1.8:(d1?1.1:1);
+  const blocked=block&&p.id==="A"?1:1;
+  return p.stock[r]/(BURN[r]*p.load*terrain*weather*threat*blocked);
+ };
+ const toneOf=h=>h<24?"red":h<72?"amber":"green";
+ const bar={red:"bg-red-500",amber:"bg-amber-500",green:"bg-emerald-500"};
+ const txt={red:"text-red-400",amber:"text-amber-400",green:"text-emerald-400"};
+
+ const submit=()=>{
+  const v=parseFloat(form.val); if(isNaN(v)||v<0) return;
+  setPosts(ps=>ps.map(p=>p.id===form.post?{...p,stock:{...p.stock,[form.res]:v}}:p));
+  const nm=posts.find(p=>p.id===form.post).name;
+  setLog(l=>[`${new Date().toLocaleTimeString("en-GB")} · ${nm} ${form.res} → ${v} ${UNIT[form.res]}${online?"":" (queued)"}`,...l].slice(0,4));
+  if(!online) setQueued(q=>q+1);
+  setForm(f=>({...f,val:""}));
+ };
+ const toggleOnline=()=>{ if(!online){setQueued(0);} setOnline(!online); };
+
+ const spark=a=>{const mx=100,w=120,h=32;return a.map((v,i)=>`${(i/(a.length-1))*w},${h-(v/mx)*h}`).join(" ");};
+ const fuelNow=tele.fuel.at(-1),ratNow=tele.rat.at(-1);
+
+ const recs=d1?[
+  {id:"r1",t:"Emergency airlift ammo to Post Alpha & Bravo",c:88,pr:"CRITICAL"},
+  {id:"r2",t:"Disperse fuel bowsers from Central Depot to alternate site",c:93,pr:"CRITICAL"},
+  {id:"r3",t:"Convoy escort required on all MSR movements",c:90,pr:"HIGH"}]:[
+  {id:"r1",t:"Pre-position 4,000 L fuel to Post Alpha within 72 h",c:91,pr:"HIGH"},
+  {id:"r2",t:"Add 1,200 kg winter rations to Post Bravo (high-elevation burn)",c:84,pr:"MEDIUM"},
+  {id:"r3",t:"Schedule convoy before pass closure window (Day 3–5)",c:79,pr:"MEDIUM"}];
+
+ return (
+ <div className={`min-h-screen text-zinc-200 ${d1?"bg-red-950/20":""}`}>
+  {/* DEFCON banner */}
+  <div className={`${d1?"flash":"bg-amber-900/70"} border-b ${d1?"border-red-500":"border-amber-600"} px-4 py-3`}>
+   <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div className="flex items-center gap-3">
+     <Icon n={d1?"alert":"shield"} s={26} c={d1?"text-white":"text-amber-300"}/>
+     <div>
+      <div className="font-bold tracking-widest text-sm sm:text-base text-white">{d1?"DEFCON 1: ACTIVE THREAT / ATTACK ON SUPPLY DEPOT":"DEFCON 3: HEIGHTENED READINESS – SECTOR WATCH ACTIVE"}</div>
+      <div className="text-[11px] text-white/70">{d1?"All convoys halted · Depot lockdown · Command notified":"Routine movement authorised · Elevated surveillance"}</div>
+     </div>
+    </div>
+    <button onClick={()=>setD1(!d1)} className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider border transition ${d1?"bg-white text-red-700 border-white hover:bg-zinc-200":"bg-red-700 hover:bg-red-600 text-white border-red-500"}`}>
+     {d1?"STAND DOWN · RESTORE DEFCON 3":"SIMULATE WAREHOUSE ATTACK / BREACH"}
+    </button>
+   </div>
+  </div>
+
+  <div className="max-w-7xl mx-auto px-4 py-5 space-y-5">
+   <div className="flex flex-wrap items-center justify-between gap-2">
+    <div>
+     <h1 className="text-lg font-bold tracking-widest text-white">HIMGUARD <span className="text-emerald-400">// LOGISTICS COMMAND</span></h1>
+     <p className="text-xs text-zinc-500">High-altitude supply chain · Northern Sector · Central Depot → Forward Posts</p>
+    </div>
+    <div className="flex gap-2"><Badge t={d1?"Threat: Critical":"Threat: Elevated"} k={d1?"red":"amber"}/><Badge t="Blizzard Watch +5d" k="amber"/><Badge t={online?"Sync Live":"Offline"} k={online?"green":"red"}/></div>
+   </div>
+
+   <div className="grid lg:grid-cols-5 gap-5">
+    {/* Map */}
+    <Card cls="lg:col-span-3" title="GIS Logistics Planning Map" icon="route"
+     right={<button onClick={()=>setBlock(!block)} className={`text-[11px] font-bold tracking-wider px-3 py-1.5 rounded-lg border ${block?"bg-emerald-900/60 border-emerald-600 text-emerald-300":"bg-amber-900/50 border-amber-600 text-amber-300 hover:bg-amber-800/60"}`}>{block?"CLEAR BLOCKADE":"SIMULATE ROUTE BLOCKADE / LANDSLIDE"}</button>}>
+     <div className="rounded-lg overflow-hidden border border-zinc-800 bg-zinc-950">
+      <svg viewBox="0 0 600 330" className="w-full h-auto">
+       <defs><pattern id="g" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#27272a" strokeWidth=".5"/></pattern></defs>
+       <rect width="600" height="330" fill="url(#g)"/>
+       <polygon points="0,330 0,230 70,170 120,210 190,120 250,190 320,60 400,170 450,110 520,180 600,90 600,330" fill="#18181b" stroke="#3f3f46"/>
+       <polygon points="320,60 300,95 320,88 340,100" fill="#e4e4e7" opacity=".5"/>
+       <polygon points="190,120 175,148 192,140 206,152" fill="#e4e4e7" opacity=".4"/>
+       {/* alternate */}
+       <path d="M60 260 C160 315 330 305 420 245 S360 140 300 95" fill="none" stroke={block?"#10b981":"#3f3f46"} strokeWidth={block?4:2} className={block?"march":""}/>
+       {/* primary */}
+       <path d="M60 260 C150 205 220 150 300 95" fill="none" stroke={block?"#ef4444":"#10b981"} strokeWidth="4" className={block?"":"march"} strokeDasharray={block?"3 6":undefined}/>
+       <path d="M300 95 L520 62" fill="none" stroke="#52525b" strokeWidth="2" strokeDasharray="4 4"/>
+       {block&&<g><circle cx="185" cy="187" r="10" fill="#ef4444" className="ping2" opacity=".6"/><circle cx="185" cy="187" r="8" fill="#7f1d1d" stroke="#ef4444" strokeWidth="2"/><text x="185" y="191" textAnchor="middle" fontSize="10" fill="#fff" fontWeight="bold">!</text><text x="198" y="175" fontSize="11" fill="#fca5a5" fontWeight="bold">PASS BLOCKED</text></g>}
+       {/* nodes */}
+       <g><rect x="44" y="244" width="32" height="32" rx="4" fill={d1?"#7f1d1d":"#064e3b"} stroke={d1?"#ef4444":"#10b981"} strokeWidth="2"/>{d1&&<circle cx="60" cy="260" r="14" fill="#ef4444" className="ping2" opacity=".5"/>}<text x="60" y="296" textAnchor="middle" fontSize="11" fill="#d4d4d8">CENTRAL DEPOT</text></g>
+       {[["Alpha",300,95],["Bravo",520,62],["Charlie",420,245]].map(([n,x,y])=>(
+        <g key={n}><circle cx={x} cy={y} r="9" fill="#451a03" stroke="#f59e0b" strokeWidth="2"/><text x={x} y={y-16} textAnchor="middle" fontSize="11" fill="#fde68a">POST {n.toUpperCase()}</text></g>))}
+       <text x="12" y="20" fontSize="10" fill="#71717a">GRID 43R · ELEV 3,900–5,400 m</text>
+      </svg>
+     </div>
+     <div className="grid sm:grid-cols-2 gap-3 mt-3">
+      {[{n:"Primary: Depot → Alpha (Pass Road)",km:142,t:"6h 10m",ok:!block,tag:block?"Pass Blocked":"Open"},
+        {n:"Alternate: Depot → Charlie → Alpha",km:198,t:"9h 40m",ok:block,tag:block?"Recommended":"Standby"}].map((r,i)=>(
+       <div key={i} className={`rounded-lg border p-3 ${i===0?(block?"border-red-700 bg-red-950/40":"border-emerald-800 bg-emerald-950/30"):(block?"border-emerald-600 bg-emerald-950/40":"border-zinc-800 bg-zinc-900")}`}>
+        <div className="flex justify-between items-start gap-2"><span className="text-xs text-zinc-300">{r.n}</span><Badge t={r.tag} k={i===0?(block?"red":"green"):(block?"green":"slate")}/></div>
+        <div className="mt-2 flex gap-4 text-sm"><span className="flex items-center gap-1"><Icon n="route" s={14}/>{r.km} km</span><span className="flex items-center gap-1"><Icon n="clock" s={14}/>{r.t}</span></div>
+       </div>))}
+     </div>
+     {block&&<p className="mt-3 text-xs text-emerald-300 bg-emerald-950/40 border border-emerald-800 rounded-lg p-2">Rerouting engaged: +56 km / +3h 30m via Charlie. Convoy ETA to Alpha revised.</p>}
+    </Card>
+
+    {/* AI */}
+    <Card cls="lg:col-span-2" title="AI/ML Demand Forecasting" icon="zap" right={<Badge t="Model v4.2 · LSTM+GBM" k="green"/>}>
+     <div className={`rounded-lg border p-3 mb-3 ${d1?"border-red-700 bg-red-950/40":"border-amber-700 bg-amber-950/30"}`}>
+      <div className="flex items-start gap-2"><Icon n={d1?"alert":"snow"} s={18} c={d1?"text-red-400":"text-amber-400"}/>
+       <p className="text-sm">{d1?"Predicted 45% surge in ammunition demand and 20% in fuel due to active threat posture.":"Predicted 30% surge in fuel demand due to incoming sub-zero blizzard next week."}</p></div>
+     </div>
+     <div className="space-y-2 mb-4">
+      {[["Fuel",d1?"+20%":"+30%",d1?86:91],["Rations","+12%",84],["Ammo",d1?"+45%":"+8%",d1?88:76]].map(([n,v,c])=>(
+       <div key={n}><div className="flex justify-between text-xs mb-1"><span className="text-zinc-400">{n} demand</span><span className="text-zinc-200">{v} · confidence {c}%</span></div>
+        <div className="h-1.5 bg-zinc-800 rounded"><div className="h-1.5 rounded bg-emerald-500" style={{width:c+"%"}}/></div></div>))}
+     </div>
+     <div className="text-[10px] tracking-widest text-zinc-500 mb-2">AUTOMATED RECOMMENDATIONS</div>
+     <div className="space-y-2">
+      {recs.map(r=>(
+       <div key={r.id} className="flex items-center justify-between gap-2 bg-zinc-950 border border-zinc-800 rounded-lg p-2">
+        <div><div className="text-xs">{r.t}</div><div className="mt-1 flex gap-2"><Badge t={r.pr} k={r.pr==="CRITICAL"?"red":r.pr==="HIGH"?"amber":"slate"}/><Badge t={`${r.c}% conf`} k="green"/></div></div>
+        <button onClick={()=>setApproved(a=>({...a,[r.id+d1]:!a[r.id+d1]}))} className={`shrink-0 text-[11px] px-2 py-1 rounded border ${approved[r.id+d1]?"bg-emerald-700 border-emerald-500 text-white":"border-zinc-600 text-zinc-300 hover:bg-zinc-800"}`}>{approved[r.id+d1]?"Approved":"Approve"}</button>
+       </div>))}
+     </div>
+    </Card>
+   </div>
+
+   {/* Depletion */}
+   <div>
+    <div className="flex items-center justify-between mb-2"><h2 className="text-xs tracking-widest font-semibold text-zinc-400 uppercase flex items-center gap-2"><Icon n="mtn" s={16} c="text-emerald-400"/>Terrain-Aware Depletion Countdown</h2><span className="text-[11px] text-zinc-500">Weather ×{weather} · Elevation & threat adjusted</span></div>
+    <div className="grid md:grid-cols-3 gap-4">
+     {posts.map(p=>(
+      <div key={p.id} className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4">
+       <div className="flex justify-between items-center mb-3"><div><div className="font-semibold text-white">{p.name}</div><div className="text-[11px] text-zinc-500">Elev {p.elev.toLocaleString()} m · terrain ×{(1+(p.elev-3000)/6000).toFixed(2)}</div></div>
+        <Badge t={block&&p.id==="A"?"Supply Delayed":"Active"} k={block&&p.id==="A"?"red":"green"}/></div>
+       <div className="space-y-3">
+        {["fuel","rations","ammo"].map(r=>{const h=hours(p,r),tn=toneOf(h);return(
+         <div key={r}>
+          <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5 text-zinc-300 capitalize"><Icon n={ICON[r]} s={14}/>{r}</span><span className="text-zinc-400">{Math.round(p.stock[r]).toLocaleString()} {UNIT[r]}</span></div>
+          <div className="h-1.5 bg-zinc-800 rounded my-1"><div className={`h-1.5 rounded ${bar[tn]}`} style={{width:Math.min(100,h/1.2)+"%"}}/></div>
+          <div className={`text-xs font-semibold ${txt[tn]}`}>{tn==="red"?"Critical: ":tn==="amber"?"Warning: ":"Stable: "}{r} depleting in {fmt(h)}</div>
+         </div>)})}
+       </div>
+      </div>))}
+    </div>
+   </div>
+
+   {/* IoT */}
+   <Card title="IoT Telemetry & Manual Ingestion" icon="act" right={<Badge t={online?"Streams Live":"Sensors Unreachable"} k={online?"green":"red"}/>}>
+    <div className="grid md:grid-cols-2 gap-5">
+     <div className="space-y-3">
+      {[["Tank Level Sensor · TL-A01 (Alpha Fuel)",tele.fuel,fuelNow,"%"],["Weight Sensor · WS-B07 (Bravo Rations)",tele.rat,ratNow,"%"]].map(([n,a,v,u])=>(
+       <div key={n} className="bg-zinc-950 border border-zinc-800 rounded-lg p-3 flex items-center justify-between gap-3">
+        <div><div className="text-xs text-zinc-400">{n}</div><div className={`text-xl font-bold ${online?"text-emerald-400":"text-zinc-600"}`}>{v.toFixed(1)}{u}</div><div className="text-[10px] text-zinc-500">{online?"LoRa · RSSI −71 dBm":"No signal · last value cached"}</div></div>
+        <svg width="120" height="32"><polyline points={spark(a)} fill="none" stroke={online?"#10b981":"#52525b"} strokeWidth="2"/></svg>
+       </div>))}
+      <div className="text-[11px] text-zinc-500 flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${online?"bg-emerald-500 animate-pulse":"bg-red-500"}`}/>Last packet {synced}</div>
+     </div>
+     <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-3">
+      <div className="text-xs font-semibold text-zinc-300 mb-2">MANUAL ENTRY · SENSOR FALLBACK</div>
+      <div className="grid grid-cols-3 gap-2">
+       <select value={form.post} onChange={e=>setForm({...form,post:e.target.value})} className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-xs">{posts.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
+       <select value={form.res} onChange={e=>setForm({...form,res:e.target.value})} className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-xs"><option value="fuel">Fuel (L)</option><option value="rations">Rations (kg)</option><option value="ammo">Ammo (crates)</option></select>
+       <input type="number" min="0" placeholder="Count" value={form.val} onChange={e=>setForm({...form,val:e.target.value})} className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-xs"/>
+      </div>
+      <button onClick={submit} className="mt-2 w-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold tracking-wider rounded py-2 flex items-center justify-center gap-2"><Icon n="check" s={14}/>UPDATE INVENTORY</button>
+      <ul className="mt-2 space-y-1 text-[11px] text-zinc-400">{log.length===0?<li className="text-zinc-600">No manual entries yet.</li>:log.map((l,i)=><li key={i}>▸ {l}</li>)}</ul>
+     </div>
+    </div>
+   </Card>
+  </div>
+
+  {/* Footer */}
+  <footer className={`sticky bottom-0 border-t ${online?"bg-zinc-900 border-zinc-800":"bg-amber-950 border-amber-800"}`}>
+   <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+    <div className="flex items-center gap-2"><Icon n={online?"wifi":"wifioff"} s={16} c={online?"text-emerald-400":"text-amber-400"}/>
+     <span className={online?"text-emerald-300":"text-amber-300"}>{online?"Online – Real-time Sync Active":"Offline – Data Queued Locally"}</span>
+     {!online&&<Badge t={`${queued} pending`} k="amber"/>}
+     <span className="text-zinc-500 hidden sm:inline">· Low-bandwidth mode: delta sync, gzip payloads</span></div>
+    <button onClick={toggleOnline} className="px-3 py-1.5 rounded-lg border border-zinc-600 hover:bg-zinc-800 font-semibold tracking-wider">{online?"GO OFFLINE":"RECONNECT & SYNC"}</button>
+   </div>
+  </footer>
+ </div>);
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
